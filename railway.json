@@ -9,6 +9,9 @@
       "type": "ON_FAILURE",
       "maxRetries": 10
     },
-    "cron": "*/30 * * * *"
+    "cron": {
+      "schedule": "*/30 * * * *",
+      "timezone": "UTC"
+    }
   }
 }
