@@ -1,18 +1,22 @@
 import os
 import requests
 import pandas as pd
-from datetime import datetime
 import time
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+# --- تنظیمات ---
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-SAVE_PATH = "/app/sent_signals"
-os.makedirs(SAVE_PATH, exist_ok=True)
+if not TOKEN or not CHAT_ID:
+    print("خطا: توکن یا چت آیدی تنظیم نشده!")
+    exit(1)
+
+# --- حافظه دائمی سیگنال‌های ارسال‌شده ---
+SENT_SIGNALS = set()
 
 def send_telegram_message(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "HTML"}
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML"}
     try:
         response = requests.post(url, data=payload, timeout=10)
         if response.status_code == 200:
@@ -59,15 +63,12 @@ def run_check():
         for i in range(1, len(data)):
             data.loc[data.index[i], "Signal_Action"] = gen(data.iloc[i], data.iloc[i-1]["MA200"])
 
-        log_file = os.path.join(SAVE_PATH, "sent_signals.log")
-        sent = set(open(log_file, "r", encoding="utf-8").read().splitlines()) if os.path.exists(log_file) else set()
-
         new_sig = []
         for _, row in data.iterrows():
             sig = row["Signal_Action"]
             if sig in ["BUY", "SELL"]:
                 key = f"{row['timestamp']}_{sig}_{row['close']:.2f}"
-                if key not in sent:
+                if key not in SENT_SIGNALS:  # فقط اگر قبلاً ارسال نشده
                     atr = row["ATR"]
                     price = row["close"]
                     stop = price - 5*atr if sig == "BUY" else price + 5*atr
@@ -84,17 +85,16 @@ RSI: <b>{row['RSI']:.1f}</b> | حجم: <b>{row['volume']:,.0f}</b>
                     """.strip()
                     send_telegram_message(msg)
                     new_sig.append(key)
-                    sent.add(key)
+                    SENT_SIGNALS.add(key)  # ذخیره در حافظه
                     time.sleep(1)
 
         if new_sig:
-            with open(log_file, "a", encoding="utf-8") as f:
-                for s in new_sig: f.write(s + "\n")
             print(f"{len(new_sig)} سیگنال جدید ارسال شد.")
         else:
             print("هیچ سیگنال جدیدی یافت نشد.")
     except Exception as e:
         print(f"خطا در اجرای چک: {e}")
 
+# --- اجرای اصلی ---
 print("ربات شروع شد...")
 run_check()
