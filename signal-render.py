@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 import time
 
-# --- تنظیمات ---
+
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
@@ -11,7 +11,7 @@ if not TOKEN or not CHAT_ID:
     print("خطا: توکن یا چت آیدی تنظیم نشده!")
     exit(1)
 
-# --- حافظه دائمی سیگنال‌های ارسال‌شده ---
+
 SENT_SIGNALS = set()
 
 def send_telegram_message(message):
@@ -68,7 +68,7 @@ def run_check():
             sig = row["Signal_Action"]
             if sig in ["BUY", "SELL"]:
                 key = f"{row['timestamp']}_{sig}_{row['close']:.2f}"
-                if key not in SENT_SIGNALS:  # فقط اگر قبلاً ارسال نشده
+                if key not in SENT_SIGNALS: 
                     atr = row["ATR"]
                     price = row["close"]
                     stop = price - 5*atr if sig == "BUY" else price + 5*atr
@@ -85,7 +85,7 @@ RSI: <b>{row['RSI']:.1f}</b> | حجم: <b>{row['volume']:,.0f}</b>
                     """.strip()
                     send_telegram_message(msg)
                     new_sig.append(key)
-                    SENT_SIGNALS.add(key)  # ذخیره در حافظه
+                    SENT_SIGNALS.add(key)
                     time.sleep(1)
 
         if new_sig:
@@ -95,6 +95,6 @@ RSI: <b>{row['RSI']:.1f}</b> | حجم: <b>{row['volume']:,.0f}</b>
     except Exception as e:
         print(f"خطا در اجرای چک: {e}")
 
-# --- اجرای اصلی ---
 print("ربات شروع شد...")
 run_check()
+
