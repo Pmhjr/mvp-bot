@@ -2,7 +2,7 @@ import os
 import requests
 import pandas as pd
 import time
-
+from datetime import datetime
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -28,6 +28,7 @@ def send_telegram_message(message):
 
 def run_check():
     try:
+        print(f"چک کردن داده‌ها در {datetime.now().strftime('%H:%M:%S')}...")
         url = "https://api.coinex.com/v1/market/kline"
         params = {"market": "BTCUSDT", "type": "30min", "limit": 1000}
         response = requests.get(url, params=params, timeout=10)
@@ -63,12 +64,12 @@ def run_check():
         for i in range(1, len(data)):
             data.loc[data.index[i], "Signal_Action"] = gen(data.iloc[i], data.iloc[i-1]["MA200"])
 
-        new_sig = []
+        new_sig = 0
         for _, row in data.iterrows():
             sig = row["Signal_Action"]
             if sig in ["BUY", "SELL"]:
                 key = f"{row['timestamp']}_{sig}_{row['close']:.2f}"
-                if key not in SENT_SIGNALS: 
+                if key not in SENT_SIGNALS:
                     atr = row["ATR"]
                     price = row["close"]
                     stop = price - 5*atr if sig == "BUY" else price + 5*atr
@@ -80,21 +81,24 @@ def run_check():
 {direction} در قیمت: <b>{price:,.2f} USDT</b>
 زمان: <code>{row['timestamp'].strftime('%Y-%m-%d %H:%M')}</code>
 استاپ‌لاس: <b>{stop:,.2f}</b>
-تیک‌پرافیت: <b>{take:,.2f}</b>
+تیک‌پروفیت: <b>{take:,.2f}</b>
 RSI: <b>{row['RSI']:.1f}</b> | حجم: <b>{row['volume']:,.0f}</b>
                     """.strip()
                     send_telegram_message(msg)
-                    new_sig.append(key)
                     SENT_SIGNALS.add(key)
+                    new_sig += 1
                     time.sleep(1)
 
-        if new_sig:
-            print(f"{len(new_sig)} سیگنال جدید ارسال شد.")
+        if new_sig > 0:
+            print(f"{new_sig} سیگنال جدید ارسال شد.")
         else:
             print("هیچ سیگنال جدیدی یافت نشد.")
     except Exception as e:
         print(f"خطا در اجرای چک: {e}")
 
-print("ربات شروع شد...")
-run_check()
 
+print("ربات 24/7 شروع شد...")
+while True:
+    run_check()
+    print("30 دقیقه صبر برای اجرای بعدی...")
+    time.sleep(1800) 
