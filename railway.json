@@ -4,14 +4,6 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "python signal-render.py",
-    "restartPolicy": {
-      "type": "ON_FAILURE",
-      "maxRetries": 10
-    },
-    "cron": {
-      "schedule": "*/30 * * * *",
-      "timezone": "UTC"
-    }
+    "startCommand": "python signal-render.py"
   }
 }
